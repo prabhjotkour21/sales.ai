@@ -25,6 +25,15 @@ class RevenueResponse(BaseModel):
     results: Dict[str, str]
 
 
+class EmailSummaryRequest(BaseModel):
+    prompt: str
+    description: Optional[str] = None
+    product_details: Optional[str] = None
+    requested_sections: Optional[List[str]] = None
+    userEmail: Optional[str] = None
+
+class EmailSummaryResponse(BaseModel):
+    results: Dict[str, str]
 
 
 # Updated dynamic version with customizable input and sections
@@ -134,6 +143,45 @@ async def get_revenue_summary(organizationId: str, token_data: dict = Depends(ve
 
     except Exception as e:
         return {"error": str(e)}
+
+
+@router.post("/email-bot", response_model=EmailSummaryResponse)
+async def email_summary(request: EmailSummaryRequest):
+    try:
+        # Construct base context using input
+        description = request.description or "No description provided."
+        product_details = request.product_details or "No product details available."
+        user_email = request.userEmail or "Unknown user"
+
+        base_context = (
+            f"Email written by: {user_email}\n"
+            f"Description: {description}\n"
+            f"Product Details: {product_details}\n"
+            f"Email Content:\n{request.prompt}"
+        )
+
+        # Define default instructions (you can customize these)
+        default_instructions = {
+            "Email Summary": "Summarize this email content in 2-3 sentences.",
+            "Action Points": "List any action points or to-dos from this email.",
+            "Tone Analysis": "Analyze the tone of this email (formal, polite, urgent, etc.)."
+        }
+
+        # If requested_sections are specified, filter accordingly
+        instructions = {
+            k: v for k, v in default_instructions.items()
+            if not request.requested_sections or k in request.requested_sections
+        }
+
+        # Run LLM for each instruction
+        results = {}
+        for section, instruction in instructions.items():
+            results[section] = run_instruction(instruction, base_context)
+
+        return EmailSummaryResponse(results=results)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

@@ -86,7 +86,8 @@ async def get_meeting_summary(
         "updatedAt": document["updatedAt"],
         "transcript": result["results"],
         "riskScore": int(risk_score),
-        "next_step": next_step
+        "next_step": next_step,
+        "recording": result.get("recording_url")
     }
 
 
