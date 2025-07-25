@@ -1,0 +1,32 @@
+sympy==1.12
+torch
+torchaudio
+pyannote.audio
+git+https://github.com/speechbrain/speechbrain.git@develop
+# whisper-timestamped
+pydub
+scipy
+transformers
+python-dotenv
+
+fastapi
+uvicorn[standard]
+boto3
+motor
+pydub
+# pyannote.audio
+faster-whisper
+python-multipart
+aiofiles
+ffmpeg-python
+bcrypt
+pydantic[email]
+llama-cpp-python
+PyJWT
+soundfile
+langchain
+langchain-community
+
+google-auth-oauthlib==1.0.0
+google-auth-httplib2==0.1.0
+google-api-python-client==2.86.0
