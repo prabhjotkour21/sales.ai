@@ -12,6 +12,8 @@ class MeetingCreate(BaseModel):
     scheduled_time: Optional[str] = None
     eventId: Optional[str] = None
     meetingJoinId: Optional[str] = None
+    dealId: Optional[str] = None
+    organizationId: Optional[str] = None
 
 class MeetingResponse(MeetingCreate):
     id: str
@@ -32,5 +34,7 @@ def meeting_doc_to_response(doc):
         product_details=doc.get("product_details"),
         scheduled_time=doc.get("scheduled_time"),
         eventId=doc.get("eventId"),
-        meetingJoinId=doc.get("meetingJoinId")
+        meetingJoinId=doc.get("meetingJoinId"),
+        dealId=str(doc.get("dealId")) if doc.get("dealId") else None,
+        organizationId=str(doc.get("organizationId")) if doc.get("organizationId") else None,
     )

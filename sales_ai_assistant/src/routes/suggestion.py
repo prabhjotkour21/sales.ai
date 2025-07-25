@@ -3,6 +3,12 @@ from typing import List
 from bson import ObjectId
 from src.services.mongo_service import get_final_audio, get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session
 from src.routes.auth import verify_token
+from src.services.prediction_models_service import run_instruction
+from src.services.mongo_service import get_meeting_by_id
+from src.services.mongo_service import meetings_collection
+
+from src.services.deal_service import update_deal_by_id
+
 
 router = APIRouter()
 
@@ -54,6 +60,23 @@ async def get_meeting_summary(
         raise HTTPException(status_code=404, detail="Summary not found")
 
     result = await get_final_audio(meetingId)
+    #LLM Instructions
+    context = f"Meeting Summary:\n{document['summary']}\nTranscript:\n{result['results']}"
+    risk_score = run_instruction("Give a risk score (0-100) for this deal based on the summary", context)
+    next_step = run_instruction("Mention the next step or action item based on the meeting discussion", context)
+
+
+    # Update related deal
+    meeting = await get_meeting_by_id(meetingId)
+    deal_id = meeting.get("dealId")
+
+    if deal_id:
+        await update_deal_by_id(str(deal_id), {
+            "riskScore": int(risk_score),
+            "next_step": next_step
+        })
+
+
     return {
         "meetingId": document["meetingId"],
         "userId": document["userId"],
@@ -61,5 +84,115 @@ async def get_meeting_summary(
         "suggestion": document["suggestion"],
         "createdAt": document["createdAt"],
         "updatedAt": document["updatedAt"],
-        "transcript": result["results"]
+        "transcript": result["results"],
+        "riskScore": int(risk_score),
+        "next_step": next_step
     }
+
+
+
+
+
+# Route to get conversation insights from a specific meeting
+@router.get("/conversation-insights/{meetingId}", response_model=dict)
+async def get_conversation_insights(meetingId: str, token_data: dict = Depends(verify_token)):
+    # Extract user ID from the token
+    user_id = token_data["user_id"]
+
+    # Fetch the document containing summary, suggestion, and transcript
+    document = await get_summary_and_suggestion(meetingId, user_id)
+
+    # If document or transcript is missing, raise an error
+    if not document or "transcript" not in document:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+
+    # Extract transcript data from the document
+    transcript = document["transcript"]
+
+    # Dictionary to track total speaking time of each speaker
+    speaker_time = {}
+
+    # Variable to store total duration of the meeting
+    total_time = 0
+
+    # Loop through each transcript entry to calculate speaking duration
+    for entry in transcript:
+        speaker = entry["speaker"]
+        duration = entry["end_time"] - entry["start_time"]
+        total_time += duration  # Add to total meeting time
+        speaker_time[speaker] = speaker_time.get(speaker, 0) + duration  # Accumulate speaker time
+
+    # Prepare the response list with speaker stats
+    speaker_stats = []
+    for speaker, time_spoken in speaker_time.items():
+        # Calculate speaking time percentage
+        percentage = round((time_spoken / total_time) * 100, 2)
+        speaker_stats.append({
+            "speaker": speaker,
+            "speakingTime": time_spoken,
+            "percentage": percentage
+        })
+
+    # Final response with meeting ID, total time, and speaker-wise stats
+    return {
+        "meetingId": meetingId,
+        "totalDuration": total_time,
+        "speakerStats": speaker_stats
+    }
+
+
+
+
+# Route to get conversation insights for the whole team (organization)
+@router.get("/conversation-insights/{organizationId}", response_model=dict)
+async def get_team_conversation_insights(organizationId: str, token_data: dict = Depends(verify_token)):
+    try:
+        # Fetch all meetings of this organization
+        meetings = await meetings_collection.find({
+            "organizationId": ObjectId(organizationId),
+            "isDeleted": False
+        }).to_list(length=None)
+
+        # Dictionary to track each user's total speaking time and number of conversations
+        team_stats = {}  # {userId: {"name": ..., "conversations": x, "hours": y}}
+
+        for meeting in meetings:
+            user_id = meeting.get("userId")
+            transcript = meeting.get("transcript", [])
+
+            total_time = 0
+            for entry in transcript:
+                duration = entry["end_time"] - entry["start_time"]
+                total_time += duration
+
+            if not user_id:
+                continue
+
+            if user_id not in team_stats:
+                team_stats[user_id] = {
+                    "name": meeting.get("userName", "Unknown"),
+                    "conversations": 0,
+                    "hours": 0.0
+                }
+
+            team_stats[user_id]["conversations"] += 1
+            team_stats[user_id]["hours"] += total_time / 60.0  # Convert seconds to minutes
+
+        # Prepare final response with avgDuration calculation
+        response = []
+        for stats in team_stats.values():
+            conversations = stats["conversations"]
+            hours = round(stats["hours"], 2)
+            avg_duration = round(hours * 60 / conversations, 2) if conversations > 0 else 0.0
+
+            response.append({
+                "name": stats["name"],
+                "conversations": conversations,
+                "hours": hours,
+                "avgDuration": avg_duration
+            })
+
+        return {"teamInsights": response}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional,Dict
 from src.common.extract_calendly_events import extract_calendly_events
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Body, Depends,  Request
 import uuid, tempfile, os
@@ -8,6 +8,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from pydantic import BaseModel
+from bson import ObjectId
+
 
 from src.services.prediction_models_service import run_instruction
 from src.services.speaker_identification import load_reference_embedding, process_segments, run_diarization
@@ -419,6 +421,11 @@ async def create_meeting_api(
     userId = token_data["user_id"]
     meeting_data = meeting.dict()
     meeting_data["userId"] = userId
+
+    
+    # ✅ Convert dealId to ObjectId if present
+    if meeting_data.get("dealId"):
+        meeting_data["dealId"] = ObjectId(meeting_data["dealId"])
     
     # If eventId is not provided, create a new calendar event
     if not meeting_data.get("eventId"):

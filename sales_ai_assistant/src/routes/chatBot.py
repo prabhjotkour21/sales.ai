@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from src.services.prediction_models_service import run_instruction
 from typing import Optional, List,Dict
+from bson import ObjectId
+from src.routes.auth import verify_token
+from src.services.deal_service import deals_collection
+from fastapi import Depends
+
 router = APIRouter()
 
 class ChatBotRequest(BaseModel):
@@ -20,8 +25,6 @@ class RevenueResponse(BaseModel):
     results: Dict[str, str]
 
 
-
-  
 
 
 # Updated dynamic version with customizable input and sections
@@ -64,42 +67,73 @@ async def chat_bot(request: ChatBotRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#  Revenue Summary Endpoint
-@router.post("/revenue-summary", response_model=RevenueResponse)
-async def revenue_summary(request: RevenueRequest):
-    try:
-        base_context = f"Revenue Data:\n{request.data}"
 
-        # All available instructions
-        all_instructions = {
-            "Total Revenue": "Calculate the total revenue of all deals.",
-            "High Risk Deals": "List the deals with Risk Score greater than 60.",
-            "Next Steps": "List any upcoming steps or follow-ups required.",
-            "Closed Deals Summary": "Summarize closed won and closed lost deals.",
+
+
+
+@router.get("/revenue-summary/{organizationId}")
+async def get_revenue_summary(organizationId: str, token_data: dict = Depends(verify_token)):
+    try:
+        pipeline = [
+            {
+                "$match": {
+                    "organizationId": ObjectId(organizationId),
+                    "isDeleted": False
+                }
+            },
+            {
+                "$facet": {
+                    "summary": [
+                        {
+                            "$group": {
+                                "_id": "$status",
+                                "value": { "$sum": "$value" },
+                                "count": { "$sum": 1 }
+                            }
+                        }
+                    ],
+                    "deals": [
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "title": 1,
+                                "value": 1,
+                                "status": 1,
+                                "riskScore": { "$ifNull": ["$riskScore", 0] },
+                                "nextStep": { "$ifNull": ["$next_step", "-"] }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+
+        result = await deals_collection.aggregate(pipeline).to_list(length=1)
+
+        if not result:
+            return {}
+
+        data = result[0]
+
+        # Format the summary section
+        summary_dict = {}
+        for s in data["summary"]:
+            status_key = s["_id"]
+            summary_dict[status_key] = {
+                "value": s["value"],
+                "count": s["count"]
+            }
+
+        # Final response
+        response = {
+            **summary_dict,
+            "deals": data["deals"]
         }
 
-        # Filter if specific sections requested
-        if request.requested_sections:
-            instructions = {
-                k: v for k, v in all_instructions.items()
-                if k in request.requested_sections
-            }
-        else:
-            instructions = all_instructions
-
-        # Generate LLM output for each section
-        results = {}
-        for key, inst in instructions.items():
-            results[key] = run_instruction(inst, base_context)
-
-        return RevenueResponse(results=results)
+        return response
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
-    
-
-
-
+        return {"error": str(e)}
 
 
 
