@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Body, Query, Depends
-from typing import List
+from typing import List,Dict
 from bson import ObjectId
 from src.services.mongo_service import get_final_audio, get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session
 from src.routes.auth import verify_token
@@ -8,6 +8,8 @@ from src.services.mongo_service import get_meeting_by_id
 from src.services.mongo_service import meetings_collection
 
 from src.services.deal_service import update_deal_by_id
+
+import json
 
 
 router = APIRouter()
@@ -197,3 +199,44 @@ async def get_team_conversation_insights(organizationId: str, token_data: dict =
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.get("/question-answer/{meetingId}/{eventId}", response_model=List[Dict])
+async def get_questions_answers_llm(
+    meetingId: str,
+    eventId: str,
+    token_data: dict = Depends(verify_token)
+):
+    userId = token_data["user_id"]
+    chunks = await get_real_time_transcript(meetingId, userId, eventId)
+
+    if not chunks:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+
+    # 1. Convert transcript chunks to speaker-tagged format
+    speaker_lines = []
+    for chunk in chunks:
+        speaker = chunk.get("speaker", "Unknown")
+        text = chunk.get("transcript", "").strip()
+        if text:
+            speaker_lines.append(f"{speaker}: {text}")
+    
+    full_conversation = "\n".join(speaker_lines)
+
+    # 2. Prompt for LLM
+    task = (
+        "From the following meeting transcript, extract all question-answer pairs along with the speakers involved. "
+        "Output must be a list of JSON objects, each containing question, question_speaker, answer, and answer_speaker."
+    )
+
+    try:
+        output_text = run_instruction(task, full_conversation, max_tokens=600)
+
+        # 3. Parse JSON string
+        qa_pairs = json.loads(output_text)
+        return qa_pairs
+
+    except Exception as e:
+        print(f"Error from LLM or JSON parse: {e}")
+        raise HTTPException(status_code=500, detail="LLM processing failed")
