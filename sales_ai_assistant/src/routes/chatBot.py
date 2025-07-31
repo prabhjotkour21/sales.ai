@@ -60,13 +60,7 @@ async def chat_bot(request: ChatBotRequest):
             "Sentiment / Feedback": "Analyze the tone and sentiment of each speaker and the overall meeting."
         }
         # Filter instructions based on user input
-        # if request.requested_sections:
-        #     instructions = {
-        #         key: value for key, value in all_instructions.items()
-        #         if key in request.requested_sections
-        #     }
-        # else:
-        
+
         instructions = all_instructions  # Default: all sections
 
         results = {}

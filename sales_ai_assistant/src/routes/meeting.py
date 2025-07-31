@@ -251,11 +251,12 @@ async def finalize_offline_session(
     file: UploadFile = File(...),
     meetingId: str = Form(...),
     eventId: str = Form(...),
-    token_data: dict = Depends(verify_token)
+    userId:str=Form(...)
+    # token_data: dict = Depends(verify_token)
 ):
-    userId = token_data["user_id"]
-    if not meetingId or not eventId:
-        raise HTTPException(status_code=400, detail="Missing meetingId or eventId")
+    # userId = token_data["user_id"]
+    if not meetingId or not eventId or not userId:
+        raise HTTPException(status_code=400, detail="Missing meetingId or eventId ,userId")
 
     temp_dir = tempfile.mkdtemp()
     local_files = []

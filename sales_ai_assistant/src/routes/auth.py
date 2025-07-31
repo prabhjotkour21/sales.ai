@@ -66,6 +66,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
         )
         email = payload.get("email")
         user_id = payload.get("user_id")
+        print(email,user_id)
         if email is None or user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, 
@@ -106,7 +107,7 @@ async def signup(data: SignupRequest):
         "email": data.email,
         "exp": datetime.utcnow() + timedelta(hours=24)
     }
-    secret = os.getenv("JWT_SECRET", "default_secret")
+    secret = 'JotKour2685'
     token = jwt.encode(payload, secret, algorithm="HS256")
 
     return {"message": "Signup successful.", "userId": str(user), "access_token": token}
@@ -135,7 +136,7 @@ async def login(data: LoginRequest):
             "email": user["email"],
             "exp": datetime.utcnow() + timedelta(hours=24)
         }
-        secret = os.getenv("JWT_SECRET", "default_secret")
+        secret = "JotKour2685"
         token = jwt.encode(payload, secret, algorithm="HS256")
 
         return {
