@@ -326,17 +326,17 @@ async def finalize_offline_session(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing final session: {str(e)}")
-    finally:
-        # Clean up temporary files
-        for file in local_files:
-            if os.path.exists(file):
-                os.remove(file)
-        if final_path and os.path.exists(final_path):
-            os.remove(final_path)
-        if sample_path and os.path.exists(sample_path):
-            os.remove(sample_path)
-        if os.path.exists(temp_dir):
-            os.rmdir(temp_dir)
+    # finally:
+    #     # Clean up temporary files
+    #     for file in local_files:
+    #         if os.path.exists(file):
+    #             os.remove(file)
+    #     if final_path and os.path.exists(final_path):
+    #         os.remove(final_path)
+    #     if sample_path and os.path.exists(sample_path):
+    #         os.remove(sample_path)
+    #     if os.path.exists(temp_dir):
+    #         os.rmdir(temp_dir)
 
 
 async def handle_finalize_post_processing(meetingId: str, userId: str, transcript: str, eventId: str):
