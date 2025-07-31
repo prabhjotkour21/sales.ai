@@ -255,6 +255,7 @@ async def finalize_offline_session(
     # token_data: dict = Depends(verify_token)
 ):
     # userId = token_data["user_id"]
+    print("file :",file)
     if not meetingId or not eventId or not userId:
         raise HTTPException(status_code=400, detail="Missing meetingId or eventId ,userId")
 

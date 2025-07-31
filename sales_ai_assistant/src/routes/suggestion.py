@@ -30,10 +30,11 @@ async def create_suggestion(
 async def get_suggestions(
     meetingId: str ,
     eventId: str,
-    token_data: dict = Depends(verify_token)
+    userId:str,
+    # token_data: dict = Depends(verify_token)
 ):
     
-    userId = token_data["user_id"]
+    # userId = token_data["user_id"]
     suggestions = await get_suggestions_by_user_and_session(userId, meetingId)
     return suggestions
 
@@ -41,9 +42,10 @@ async def get_suggestions(
 async def get_transcript(
     meetingId: str,
     eventId: str,
-    token_data: dict = Depends(verify_token)
+    userId:str,
+    # token_data: dict = Depends(verify_token)
 ):
-    userId = token_data["user_id"]
+    # userId = token_data["user_id"]
     transcript = await get_real_time_transcript(meetingId, eventId, userId)
     if not transcript:
         raise HTTPException(status_code=404, detail="Transcript not found")
@@ -54,9 +56,10 @@ async def get_transcript(
 @router.get("/meeting-summary/{meetingId}", response_model=dict)
 async def get_meeting_summary(
     meetingId: str,
-    token_data: dict = Depends(verify_token)
+    userId:str
+    # token_data: dict = Depends(verify_token)
 ):
-    userId = token_data["user_id"]
+    # userId = token_data["user_id"]
     document = await get_summary_and_suggestion(meetingId, userId)
     if not document:
         raise HTTPException(status_code=404, detail="Summary not found")
@@ -206,9 +209,10 @@ async def get_team_conversation_insights(organizationId: str, token_data: dict =
 async def get_questions_answers_llm(
     meetingId: str,
     eventId: str,
-    token_data: dict = Depends(verify_token)
+    userId:str,
+    # token_data: dict = Depends(verify_token)
 ):
-    userId = token_data["user_id"]
+    # userId = token_data["user_id"]
     chunks = await get_real_time_transcript(meetingId, userId, eventId)
 
     if not chunks:
