@@ -37,7 +37,9 @@ async def sync_calendar_events(token_data: dict = Depends(verify_token)):
                 detail="Google account not connected. Please connect your Google account first."
             )
         
-        access_token = user.get("google_access_token")
+        # access_token = user.get("google_access_token")
+        access_token=user.get("tokens",{}).get("calendar",{}).get("access_token")
+        refresh_token=user.get("tokens",{}).get("calendar",{}).get("refresh_token")
         if not access_token:
             raise HTTPException(
                 status_code=400,
@@ -63,12 +65,13 @@ async def sync_calendar_events(token_data: dict = Depends(verify_token)):
 async def get_events(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
-    token_data: dict = Depends(verify_token)
+    # token_data: dict = Depends(verify_token)
+    user_id:str =Query(...)
 ):
     """Get calendar events for the authenticated user."""
     try:
         events = await get_calendar_events(
-            user_id=token_data["user_id"],
+            user_id=user_id,
             start_date=start_date,
             end_date=end_date
         )
