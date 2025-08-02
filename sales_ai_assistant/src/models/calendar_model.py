@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any ,Union
 from datetime import datetime
 
 class Attendee(BaseModel):
@@ -39,6 +39,7 @@ class Reminders(BaseModel):
     useDefault: Optional[bool] = True
 
 class CalendarEvent(BaseModel):
+    id:Optional[str]=None
     eventId: Optional[str] = None
     id: Optional[str] = None
     summary: str
@@ -47,9 +48,10 @@ class CalendarEvent(BaseModel):
     start: DateTime
     end: DateTime
     location: Optional[str] = None
-    attendees: List[Attendee] = []
+    attendees: Union[List[Attendee],List[str] ]= []
     conferenceData: Optional[ConferenceData] = None
     created: datetime
+    updated=datetime
     creator: Creator
     etag: Optional[str] = None
     eventType: Optional[str] = "default"
@@ -74,7 +76,7 @@ class CalendarEventCreate(BaseModel):
     start: DateTime
     end: DateTime
     location: Optional[str] = None
-    attendees: List[Attendee] = []
+    attendees:Union[List[Attendee], List[str]] = []
     conferenceData: Optional[ConferenceData] = None
     reminders: Optional[Reminders] = None
 

@@ -318,8 +318,9 @@ async def save_calendar_event(event_data: dict):
 
 async def get_calendar_events(user_id: str, start_date: datetime = None, end_date: datetime = None):
     """Get calendar events for a user within a date range."""
-    query = {"user_id": user_id}
-    
+    query = {
+        "createdBy": ObjectId(user_id)  
+    }
     if start_date and end_date:
         query["start_time"] = {
             "$gte": start_date,
