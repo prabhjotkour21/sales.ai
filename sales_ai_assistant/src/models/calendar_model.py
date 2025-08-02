@@ -23,17 +23,17 @@ class ConferenceData(BaseModel):
     conferenceSolution: Optional[ConferenceSolution] = None
     entryPoints: Optional[List[EntryPoint]] = None
 
-class EventDateTime(BaseModel):
-    dateTime: datetime
-    timeZone: Optional[str] = None
+# class EventDateTime(BaseModel):
+#     dateTime: datetime
+#     timeZone: Optional[str] = None
 
-class Creator(BaseModel):
-    email: str
-    self: Optional[bool] = False
+# class Creator(BaseModel):
+#     email: str
+#     self: Optional[bool] = False
 
-class Organizer(BaseModel):
-    email: str
-    self: Optional[bool] = False
+# class Organizer(BaseModel):
+#     email: str
+#     self: Optional[bool] = False
 
 class Reminders(BaseModel):
     useDefault: Optional[bool] = True
@@ -43,11 +43,23 @@ class RecordingFile(BaseModel):
     filename: str
     url: str
     size_in_bytes: Optional[int] = None
+    
+class EventDateTime(BaseModel):
+    dateTime: Optional[datetime] = None
+    timeZone: Optional[str] = None
+
+class Creator(BaseModel):
+    email: Optional[str] = None
+    self: Optional[bool] = False
+
+class Organizer(BaseModel):
+    email: Optional[str] = None
+    self: Optional[bool] = False
 
 class CalendarEvent(BaseModel):
     id:Optional[str]=None
     eventId: Optional[str] = None
-    summary: str
+    summary: Optional[str]=None
     meetingId: Optional[str] = None
     description: Optional[str] = None
     start: EventDateTime

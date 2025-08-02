@@ -324,8 +324,9 @@ async def get_calendar_events(user_id: str, start_date: datetime = None, end_dat
     query = {
         "createdBy": ObjectId(user_id)  
     }
-    logger.info(f"query :",query)
-    print("query :",query)
+    logger.info(f"query :{query}")
+    
+
     if start_date and end_date:
         query["startTime"] = {
             "$gte": start_date,
@@ -333,7 +334,7 @@ async def get_calendar_events(user_id: str, start_date: datetime = None, end_dat
     }
     
     cursor = calendar_events_collection.find(query).sort("startTime", 1)
-    logger.info(f"cursor :",cursor)
+    logger.info(f"cursor : {cursor}")
     return await cursor.to_list(length=None)
 
 async def get_calendar_event_by_id(eventId: str, user_id: str):

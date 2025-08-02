@@ -81,7 +81,7 @@ async def get_events(
             start_date=start_date,
             end_date=end_date
         )
-        logger.info(f"events:",events)
+        logger.info(f"events: {events}") 
         return events
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
