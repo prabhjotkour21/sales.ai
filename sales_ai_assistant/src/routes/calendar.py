@@ -70,15 +70,15 @@ def transform_event_data(event):
         "summary": event.get("summary", ""),
         "description": event.get("description", ""),
         "start": {
-            "dateTime": event["startTime"],
+            "dateTime": event["startTime"].isoformat(),
             "timeZone": "Asia/Kolkata"
         },
         "end": {
-            "dateTime": event["endTime"],
+            "dateTime": event["endTime"].isoformat(),
             "timeZone": "Asia/Kolkata"
         },
-        "created": event["createdAt"],
-        "updated": event["updatedAt"],
+        "created": event["createdAt"].isoformat(),
+        "updated": event["updatedAt"].isoformat(),
         "creator": {
             "email": event["userEmail"],
             "self": True
