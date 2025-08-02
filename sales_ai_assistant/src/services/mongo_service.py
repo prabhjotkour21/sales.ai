@@ -17,7 +17,7 @@ meetings_collection = db["meetings"]
 prediction_collection = db["predictions"]
 suggestion_collection = db["suggestions"]
 meeting_summry_collection = db["meetingSummrys"]
-calendar_events_collection = db["calendarEvents"]
+calendar_events_collection = db["events"]
 calendar_events_tasks_collection = db["calendarEventsTasks"]
 
 # Save chunk metadata

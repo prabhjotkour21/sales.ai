@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional, Dict, Any ,Union
+from typing import List, Optional, Dict, Any ,Union ,Extra
 from datetime import datetime
 
 class Attendee(BaseModel):
@@ -38,6 +38,12 @@ class Organizer(BaseModel):
 class Reminders(BaseModel):
     useDefault: Optional[bool] = True
 
+
+class RecordingFile(BaseModel):
+    filename: str
+    url: str
+    size_in_bytes: Optional[int] = None
+
 class CalendarEvent(BaseModel):
     id:Optional[str]=None
     eventId: Optional[str] = None
@@ -66,6 +72,9 @@ class CalendarEvent(BaseModel):
     isMeetingDetailsUploaded: Optional[bool] = False
     autoJoin: Optional[bool] = True
     mode: Optional[str] = "Online"
+    recordings: Optional[List[RecordingFile]] = []
+    class config:
+        extra = Extra.allow
 
 
 class CalendarEventCreate(BaseModel):
@@ -77,6 +86,7 @@ class CalendarEventCreate(BaseModel):
     attendees:Union[List[Attendee], List[str]] = []
     conferenceData: Optional[ConferenceData] = None
     reminders: Optional[Reminders] = None
+
 
 class CalendarEventResponse(CalendarEvent):
     pass 
