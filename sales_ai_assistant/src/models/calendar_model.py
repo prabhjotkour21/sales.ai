@@ -49,8 +49,8 @@ class CalendarEvent(BaseModel):
     location: Optional[str] = None
     attendees: Union[List[Attendee],List[str] ]= []
     conferenceData: Optional[ConferenceData] = None
-    created: datetime
-    updated=datetime
+    created: EventDateTime
+    updated:EventDateTime
     creator: Creator
     etag: Optional[str] = None
     eventType: Optional[str] = "default"
@@ -62,7 +62,6 @@ class CalendarEvent(BaseModel):
     reminders: Optional[Reminders] = None
     sequence: Optional[int] = 0
     status: Optional[str] = "confirmed"
-    updated: datetime
     user_id: Optional[str] = None
     isMeetingDetailsUploaded: Optional[bool] = False
     autoJoin: Optional[bool] = True
@@ -72,8 +71,8 @@ class CalendarEvent(BaseModel):
 class CalendarEventCreate(BaseModel):
     summary: str
     description: Optional[str] = None
-    start: DateTime
-    end: DateTime
+    start: EventDateTime
+    end: EventDateTime
     location: Optional[str] = None
     attendees:Union[List[Attendee], List[str]] = []
     conferenceData: Optional[ConferenceData] = None
