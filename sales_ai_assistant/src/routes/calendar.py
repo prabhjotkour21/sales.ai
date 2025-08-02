@@ -64,6 +64,7 @@ async def sync_calendar_events(token_data: dict = Depends(verify_token)):
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 def transform_event_data(event):
     return {
         "id": str(event["_id"]),
@@ -77,8 +78,14 @@ def transform_event_data(event):
             "dateTime": event["endTime"].isoformat(),
             "timeZone": "Asia/Kolkata"
         },
-        "created": event["createdAt"].isoformat(),
-        "updated": event["updatedAt"].isoformat(),
+        "created": {
+            "dateTime": event["createdAt"].isoformat(),
+            "timeZone": "Asia/Kolkata"
+        },
+        "updated": {
+            "dateTime": event["updatedAt"].isoformat(),
+            "timeZone": "Asia/Kolkata"
+        },
         "creator": {
             "email": event["userEmail"],
             "self": True
