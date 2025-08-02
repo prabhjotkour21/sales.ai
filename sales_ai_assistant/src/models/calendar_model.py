@@ -23,7 +23,7 @@ class ConferenceData(BaseModel):
     conferenceSolution: Optional[ConferenceSolution] = None
     entryPoints: Optional[List[EntryPoint]] = None
 
-class DateTime(BaseModel):
+class EventDateTime(BaseModel):
     dateTime: datetime
     timeZone: Optional[str] = None
 
@@ -41,12 +41,11 @@ class Reminders(BaseModel):
 class CalendarEvent(BaseModel):
     id:Optional[str]=None
     eventId: Optional[str] = None
-    id: Optional[str] = None
     summary: str
     meetingId: Optional[str] = None
     description: Optional[str] = None
-    start: DateTime
-    end: DateTime
+    start: EventDateTime
+    end: EventDateTime
     location: Optional[str] = None
     attendees: Union[List[Attendee],List[str] ]= []
     conferenceData: Optional[ConferenceData] = None
