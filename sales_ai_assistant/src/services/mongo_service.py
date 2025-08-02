@@ -4,7 +4,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from src.config import MONGO_URL, MONGO_DB_NAME
 from datetime import datetime, timedelta
 from pymongo import DESCENDING
-
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[MONGO_DB_NAME]
 
@@ -318,9 +320,11 @@ async def save_calendar_event(event_data: dict):
 
 async def get_calendar_events(user_id: str, start_date: datetime = None, end_date: datetime = None):
     """Get calendar events for a user within a date range."""
+    logger.info("Inside get_calendar_events")
     query = {
         "createdBy": ObjectId(user_id)  
     }
+    logger.info(f"query :",query)
     print("query :",query)
     if start_date and end_date:
         query["startTime"] = {
@@ -329,7 +333,7 @@ async def get_calendar_events(user_id: str, start_date: datetime = None, end_dat
     }
     
     cursor = calendar_events_collection.find(query).sort("startTime", 1)
-    print("cursor :",cursor)
+    logger.info(f"cursor :",cursor)
     return await cursor.to_list(length=None)
 
 async def get_calendar_event_by_id(eventId: str, user_id: str):

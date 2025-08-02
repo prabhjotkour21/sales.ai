@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional, Dict, Any ,Union ,Extra
+from typing import List, Optional, Dict, Any ,Union 
 from datetime import datetime
 
 class Attendee(BaseModel):
@@ -74,7 +74,7 @@ class CalendarEvent(BaseModel):
     mode: Optional[str] = "Online"
     recordings: Optional[List[RecordingFile]] = []
     class config:
-        extra = Extra.allow
+        extra ="allow"
 
 
 class CalendarEventCreate(BaseModel):

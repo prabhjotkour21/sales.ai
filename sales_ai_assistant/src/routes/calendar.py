@@ -3,6 +3,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from src.models.calendar_model import CalendarEvent, CalendarEventCreate, CalendarEventResponse
 from src.services.calendar_service import calendar_service
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from src.services.mongo_service import (
     get_calendar_events_tasks,
     save_calendar_event,
@@ -70,11 +74,14 @@ async def get_events(
 ):
     """Get calendar events for the authenticated user."""
     try:
+        logger.info("Inside get_event router")
+        
         events = await get_calendar_events(
             user_id=user_id,
             start_date=start_date,
             end_date=end_date
         )
+        logger.info(f"events:",events)
         return events
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
