@@ -321,13 +321,15 @@ async def get_calendar_events(user_id: str, start_date: datetime = None, end_dat
     query = {
         "createdBy": ObjectId(user_id)  
     }
+    print("query :",query)
     if start_date and end_date:
-        query["start_time"] = {
+        query["startTime"] = {
             "$gte": start_date,
             "$lte": end_date
-        }
+    }
     
-    cursor = calendar_events_collection.find(query).sort("start_time", 1)
+    cursor = calendar_events_collection.find(query).sort("startTime", 1)
+    print("cursor :",cursor)
     return await cursor.to_list(length=None)
 
 async def get_calendar_event_by_id(eventId: str, user_id: str):
