@@ -64,6 +64,33 @@ async def sync_calendar_events(token_data: dict = Depends(verify_token)):
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+def transform_event_data(event):
+    return {
+        "id": str(event["_id"]),
+        "summary": event.get("summary", ""),
+        "description": event.get("description", ""),
+        "start": {
+            "dateTime": event["startTime"],
+            "timeZone": "Asia/Kolkata"
+        },
+        "end": {
+            "dateTime": event["endTime"],
+            "timeZone": "Asia/Kolkata"
+        },
+        "created": event["createdAt"],
+        "updated": event["updatedAt"],
+        "creator": {
+            "email": event["userEmail"],
+            "self": True
+        },
+        "organizer": {
+            "email": event["userEmail"],
+            "self": True
+        },
+        "meetLink": event.get("meetLink"),
+        "meetingId": event.get("meetingId"),
+        "transcript": event.get("transcript", False)
+    }
 
 @router.get("/events", response_model=List[CalendarEventResponse])
 async def get_events(
@@ -82,7 +109,7 @@ async def get_events(
             end_date=end_date
         )
         logger.info(f"events: {events}") 
-        return events
+        return [transform_event_data(event) for event in events]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
