@@ -19,7 +19,8 @@ from src.services.mongo_service import (
     calendar_events_tasks_collection_save, get_calendar_event_by_id_only, get_salesperson_sample, save_chunk_metadata, get_chunk_list, save_final_audio, 
     save_suggestion, update_final_summary_and_suggestion, get_calendar_event_by_id,
     update_calendar_event, save_calendar_event,
-    get_googlemeeting_by_id
+    get_googlemeeting_by_id,
+    download_audio_from_url
 )
 from src.services.audio_merge_service import merge_audio_chunks
 from src.services.whisper_service import transcribe_audio
@@ -264,30 +265,33 @@ async def get_meeting_transcripts(meetingId: str, userId: str):
     recordings = meeting.get("recordings", [])
     transcript_objs_all = []
     updated_recordings = []
+    ref_path=os.path.join(os.path.dirname(__file__),"../host2.wav")
+    ref_embedding=load_reference_embedding(ref_path)
     for rec in recordings:
         if "transcript" in rec and rec["transcript"]:
             updated_recordings.append(rec)
             transcript_objs_all.extend(rec["transcript"])
             continue
-        audio_bytes = rec.get("audio_bytes")
-        audio_path = rec.get("audio_path")
-        if audio_bytes or audio_path:
-            temp_file = None
-            if audio_path:
-                file_path = audio_path
-            else:
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+        audio_url=rec.get("url")
+        if audio_url:
+            audio_bytes=await download_audio_from_url(audio_url)
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
                 temp_file.write(audio_bytes)
-                temp_file.close()
-                file_path = temp_file.name
-            ref_path = os.path.join(os.path.dirname(__file__), "../host2.wav")
-            ref_embedding = load_reference_embedding(ref_path)
-            diarization = run_diarization(file_path)
-            transcript_objs = process_segments(diarization, file_path, ref_embedding)
+                temp_file_path = temp_file.name
+
+            # Run diarization and transcription
+            diarization = run_diarization(temp_file_path)
+            transcript_objs = process_segments(diarization, temp_file_path, ref_embedding)
+
+
             rec["transcript"] = transcript_objs
             transcript_objs_all.extend(transcript_objs)
-            if temp_file:
-                os.remove(temp_file.name)
+
+
+            # Delete temp file
+            os.remove(temp_file_path)
+
         updated_recordings.append(rec)
     # Return transcript as part of response
     return {"meetingId": meetingId, "transcript": transcript_objs_all}

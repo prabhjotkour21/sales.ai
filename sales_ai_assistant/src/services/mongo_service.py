@@ -5,6 +5,8 @@ from src.config import MONGO_URL, MONGO_DB_NAME
 from datetime import datetime, timedelta
 from pymongo import DESCENDING
 import logging
+
+import aiohttp
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 client = AsyncIOMotorClient(MONGO_URL)
@@ -232,6 +234,13 @@ async def get_googlemeeting_by_id(meeting_id):
 async def get_meeting_by_id(meeting_id: str):
     doc = await meetings_collection.find_one({"_id": ObjectId(meeting_id)})
     return doc
+async def download_audio_from_url(url: str) -> bytes:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                raise Exception(f"Failed to download audio from {url}, status: {resp.status}")
+            return await resp.read()
+
 
 async def save_prediction_result(userId: str, meetingId: str, question: str, topic: str, result: str):
     now = datetime.utcnow()
