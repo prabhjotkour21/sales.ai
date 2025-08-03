@@ -234,7 +234,9 @@ async def get_googlemeeting_by_id(meeting_id):
 async def get_meeting_by_id(meeting_id: str):
     doc = await meetings_collection.find_one({"_id": ObjectId(meeting_id)})
     return doc
+
 async def download_audio_from_url(url: str) -> bytes:
+    timeout = aiohttp.ClientTimeout(total=120)  
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             if resp.status != 200:
