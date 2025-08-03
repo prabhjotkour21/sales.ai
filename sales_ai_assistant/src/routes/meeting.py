@@ -259,7 +259,7 @@ async def upload_audio_chunk(
 @router.get("/get-meeting-transcripts")
 async def get_meeting_transcripts(meetingId: str, userId: str):
     meeting = await get_googlemeeting_by_id(meetingId)
-    if not meeting or meeting.get("userId") != userId:
+    if not meeting or meeting.get("user_id") != userId:
         raise HTTPException(status_code=404, detail="Meeting not found")
     recordings = meeting.get("recordings", [])
     transcript_objs_all = []
