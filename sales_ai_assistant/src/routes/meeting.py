@@ -20,7 +20,8 @@ from src.services.mongo_service import (
     save_suggestion, update_final_summary_and_suggestion, get_calendar_event_by_id,
     update_calendar_event, save_calendar_event,
     get_googlemeeting_by_id,
-    download_audio_from_url
+    download_audio_from_url,
+    save_transcript_to_db
 )
 from src.services.audio_merge_service import merge_audio_chunks
 from src.services.whisper_service import transcribe_audio
@@ -293,6 +294,13 @@ async def get_meeting_transcripts(meetingId: str, userId: str):
             os.remove(temp_file_path)
 
         updated_recordings.append(rec)
+     
+    
+
+    # Save transcript and recordings using your reusable function
+    await save_transcript_to_db(meetingId, transcript_objs_all, updated_recordings)
+
+
     # Return transcript as part of response
     return {"meetingId": meetingId, "transcript": transcript_objs_all}
 

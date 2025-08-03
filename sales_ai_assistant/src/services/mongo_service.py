@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional,List
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from src.config import MONGO_URL, MONGO_DB_NAME
@@ -23,6 +23,27 @@ suggestion_collection = db["suggestions"]
 meeting_summry_collection = db["meetingSummrys"]
 calendar_events_collection = db["events"]
 calendar_events_tasks_collection = db["calendarEventsTasks"]
+
+async def save_transcript_to_db(meetingId: str, transcript_data: List[dict], recordings_data: List[dict]) -> bool:
+    try:
+        result = await calendar_events_collection.update_one(
+            {"meetingId": meetingId},
+            {
+                "$set": {
+                    "transcript": transcript_data,
+                    "recordings": recordings_data
+                }
+            }
+        )
+        if result.matched_count == 0:
+            print(f"No document found with meetingId: {meetingId}")
+            return False
+        print(f"Transcript and recordings updated for meetingId: {meetingId}")
+        return True
+    except Exception as e:
+        print(f"Error while saving transcript and recordings: {e}")
+        return False
+
 
 # Save chunk metadata
 async def save_chunk_metadata(meetingId: str, chunk_name: str, userId: str, transcript: str, s3_url: str , eventId: str, container_id: str):
