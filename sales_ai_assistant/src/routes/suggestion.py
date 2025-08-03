@@ -1,7 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Body, Query, Depends
 from typing import List,Dict
 from bson import ObjectId
-from src.services.mongo_service import get_final_audio, get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session
+from src.services.mongo_service import (get_final_audio, 
+get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session,get_googlemeeting_by_id, update_calendar_event,get_meeting_by_id)
 from src.routes.auth import verify_token
 from src.services.prediction_models_service import run_instruction
 from src.services.mongo_service import get_meeting_by_id
@@ -51,49 +52,105 @@ async def get_transcript(
         raise HTTPException(status_code=404, detail="Transcript not found")
     return transcript
 
+from fastapi import APIRouter, HTTPException
+from datetime import datetime
+from typing import List
 
 
-@router.get("/meeting-summary/{meetingId}", response_model=dict)
-async def get_meeting_summary(
-    meetingId: str,
-    userId:str
-    # token_data: dict = Depends(verify_token)
-):
-    # userId = token_data["user_id"]
-    document = await get_summary_and_suggestion(meetingId, userId)
-    if not document:
-        raise HTTPException(status_code=404, detail="Summary not found")
 
-    result = await get_final_audio(meetingId)
-    #LLM Instructions
-    context = f"Meeting Summary:\n{document['summary']}\nTranscript:\n{result['results']}"
-    risk_score = run_instruction("Give a risk score (0-100) for this deal based on the summary", context)
-    next_step = run_instruction("Mention the next step or action item based on the meeting discussion", context)
+@router.get("/meeting-summary-from-transcript", response_model=dict)
+async def generate_summary_from_transcript(meetingId: str, userId: str):
+    # 1. Get meeting from DB
+    meeting = await get_googlemeeting_by_id(meetingId)
+    if not meeting or meeting.get("user_id") != userId:
+        raise HTTPException(status_code=404, detail="Meeting not found")
 
+    transcript = meeting.get("transcript", [])
+    if not transcript:
+        raise HTTPException(status_code=404, detail="Transcript not found")
 
-    # Update related deal
-    meeting = await get_meeting_by_id(meetingId)
-    deal_id = meeting.get("dealId")
+    # 2. Convert transcript to plain text
+    full_text = "\n".join([item["text"] for item in transcript if item.get("text")])
 
+    # 3. Run LLM to generate summary, suggestion, risk score, next step
+    summary = run_instruction("Summarize the meeting in 5 lines", full_text)
+    suggestion = run_instruction("What is the business suggestion from this meeting?", full_text)
+    risk_score = run_instruction("Give a risk score (0-100) for this deal based on the summary", f"Summary:\n{summary}")
+    next_step = run_instruction("Mention the next step or action item based on the meeting discussion", full_text)
+
+    # 4. Save all results to DB
+    await update_calendar_event(
+        meeting_id=meetingId,
+        update_data={
+            "summary": summary,
+            "suggestion": suggestion,
+            "riskScore": int(risk_score),
+            "next_step": next_step,
+            "updatedAt": datetime.utcnow()
+        }
+    )
+
+    # 5. Update related deal if exists
+    meeting_doc = await get_meeting_by_id(meetingId)
+    deal_id = meeting_doc.get("dealId")
     if deal_id:
         await update_deal_by_id(str(deal_id), {
             "riskScore": int(risk_score),
             "next_step": next_step
         })
 
-
+    # 6. Return response
     return {
-        "meetingId": document["meetingId"],
-        "userId": document["userId"],
-        "summary": document["summary"],
-        "suggestion": document["suggestion"],
-        "createdAt": document["createdAt"],
-        "updatedAt": document["updatedAt"],
-        "transcript": result["results"],
+        "meetingId": meetingId,
+        "userId": userId,
+        "summary": summary,
+        "suggestion": suggestion,
         "riskScore": int(risk_score),
-        "next_step": next_step,
-        "recording": result.get("recording_url")
+        "next_step": next_step
     }
+
+
+# @router.get("/meeting-summary/{meetingId}", response_model=dict)
+# async def get_meeting_summary(
+#     meetingId: str,
+#     userId:str
+#     # token_data: dict = Depends(verify_token)
+# ):
+#     # userId = token_data["user_id"]
+#     document = await get_summary_and_suggestion(meetingId, userId)
+#     if not document:
+#         raise HTTPException(status_code=404, detail="Summary not found")
+
+#     result = await get_final_audio(meetingId)
+#     #LLM Instructions
+#     context = f"Meeting Summary:\n{document['summary']}\nTranscript:\n{result['results']}"
+#     risk_score = run_instruction("Give a risk score (0-100) for this deal based on the summary", context)
+#     next_step = run_instruction("Mention the next step or action item based on the meeting discussion", context)
+
+
+#     # Update related deal
+#     meeting = await get_meeting_by_id(meetingId)
+#     deal_id = meeting.get("dealId")
+
+#     if deal_id:
+#         await update_deal_by_id(str(deal_id), {
+#             "riskScore": int(risk_score),
+#             "next_step": next_step
+#         })
+
+
+#     return {
+#         "meetingId": document["meetingId"],
+#         "userId": document["userId"],
+#         "summary": document["summary"],
+#         "suggestion": document["suggestion"],
+#         "createdAt": document["createdAt"],
+#         "updatedAt": document["updatedAt"],
+#         "transcript": result["results"],
+#         "riskScore": int(risk_score),
+#         "next_step": next_step,
+#         "recording": result.get("recording_url")
+#     }
 
 
 
