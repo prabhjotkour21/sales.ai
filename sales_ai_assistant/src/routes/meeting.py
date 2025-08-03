@@ -18,7 +18,8 @@ from src.services.s3_service import upload_file_to_s3, download_file_from_s3
 from src.services.mongo_service import (
     calendar_events_tasks_collection_save, get_calendar_event_by_id_only, get_salesperson_sample, save_chunk_metadata, get_chunk_list, save_final_audio, 
     save_suggestion, update_final_summary_and_suggestion, get_calendar_event_by_id,
-    update_calendar_event, save_calendar_event
+    update_calendar_event, save_calendar_event,
+    get_googlemeeting_by_id
 )
 from src.services.audio_merge_service import merge_audio_chunks
 from src.services.whisper_service import transcribe_audio
@@ -257,7 +258,7 @@ async def upload_audio_chunk(
 
 @router.get("/get-meeting-transcripts")
 async def get_meeting_transcripts(meetingId: str, userId: str):
-    meeting = await get_meeting_by_id(meetingId)
+    meeting = await get_googlemeeting_by_id(meetingId)
     if not meeting or meeting.get("userId") != userId:
         raise HTTPException(status_code=404, detail="Meeting not found")
     recordings = meeting.get("recordings", [])

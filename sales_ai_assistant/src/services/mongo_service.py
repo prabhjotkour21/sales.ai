@@ -226,6 +226,8 @@ async def create_meeting(data: dict):
 async def get_all_meetings(userId:str):
     cursor = meetings_collection.find({"userId":userId})
     return await cursor.to_list(length=None)
+async def get_googlemeeting_by_id(meeting_id):
+    return await db["events"].find_one({"meetingId": meeting_id})
 
 async def get_meeting_by_id(meeting_id: str):
     doc = await meetings_collection.find_one({"_id": ObjectId(meeting_id)})
