@@ -10,7 +10,8 @@ from enum import Enum
 from pydantic import BaseModel
 from bson import ObjectId
 
-
+import tempfile
+import os
 from src.services.prediction_models_service import run_instruction
 from src.services.speaker_identification import load_reference_embedding, process_segments, run_diarization
 from src.services.s3_service import upload_file_to_s3, download_file_from_s3
@@ -24,10 +25,12 @@ from src.services.whisper_service import transcribe_audio
 from src.services.diarization_service import diarize_audio
 from src.services.mongo_service import save_salesperson_sample
 
+from src.services.speaker_identification import process_segments, run_diarization, load_reference_embedding
 from src.services.transcription_service import transcribe_audio_bytes
 from src.services.mongo_service import save_transcription_chunk
 from src.utils import extract_filename_from_s3_url
 
+from src.services.mongo_service import get_meeting_collection
 
 from src.models.meeting_model import GetMeetingsById, MeetingCreate, MeetingResponse, meeting_doc_to_response
 from src.services.mongo_service import create_meeting, get_all_meetings, get_meeting_by_id
@@ -214,37 +217,81 @@ async def handle_post_processing(meetingId: str, userId: str):
 async def upload_audio_chunk(
     file: UploadFile = File(...),
     meetingId: str = Form(...),
-   
-    token_data: dict = Depends(verify_token)
+    userId: str = Form(...)
 ):
-    userId = token_data["user_id"]
-    print("hello")
-    print(f"file {file}")
+    print("[START] /upload-audio-chunk endpoint called")
+    print(f"Received file: {file}")
+    print(f"Received meetingId: {meetingId}")
+    print(f"Received userId: {userId}")
     if not file or not meetingId or not userId:
+        print("[ERROR] Missing file or meetingId or userId")
         raise HTTPException(400, detail="Missing file or meetingId or userId")
 
-    # Read file content
-    print(f"file {file}")
+    print("[STEP] Reading file content...")
     audio_bytes = await file.read()
+    print(f"[STEP] File content length: {len(audio_bytes)} bytes")
 
-    # Generate unique filename
+    print("[STEP] Generating unique filename...")
     unique_name = f"audio_recording/{meetingId}_{uuid.uuid4()}.wav"
+    print(f"[STEP] Unique filename: {unique_name}")
 
-    # Upload chunk to S3
+    print("[STEP] Uploading chunk to S3...")
     s3_url = upload_file_to_s3(unique_name, audio_bytes)
+    print(f"[STEP] S3 URL: {s3_url}")
 
-    # Transcribe the chunk
+    print("[STEP] Transcribing audio chunk...")
     transcript = transcribe_audio_bytes(audio_bytes)
+    print(f"[STEP] Transcript: {transcript}")
 
-    # Optional: Store transcription metadata in MongoDB
-    doc_id = await save_transcription_chunk(meetingId, s3_url, transcript,userId)
+    print("[STEP] Saving transcription metadata to MongoDB...")
+    doc_id = await save_transcription_chunk(meetingId, s3_url, transcript, userId)
+    print(f"[STEP] MongoDB doc_id: {doc_id}")
 
+    print("[END] Returning response to client")
     return {
         "meetingId": meetingId,
         "transcript": transcript,
         "chunkUrl": s3_url,
         "id": str(doc_id)
     }
+
+
+@router.get("/get-meeting-transcripts")
+async def get_meeting_transcripts(meetingId: str, userId: str):
+    meeting = await get_meeting_by_id(meetingId)
+    if not meeting or meeting.get("userId") != userId:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    recordings = meeting.get("recordings", [])
+    transcript_objs_all = []
+    updated_recordings = []
+    for rec in recordings:
+        if "transcript" in rec and rec["transcript"]:
+            updated_recordings.append(rec)
+            transcript_objs_all.extend(rec["transcript"])
+            continue
+        audio_bytes = rec.get("audio_bytes")
+        audio_path = rec.get("audio_path")
+        if audio_bytes or audio_path:
+            temp_file = None
+            if audio_path:
+                file_path = audio_path
+            else:
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+                temp_file.write(audio_bytes)
+                temp_file.close()
+                file_path = temp_file.name
+            ref_path = os.path.join(os.path.dirname(__file__), "../host2.wav")
+            ref_embedding = load_reference_embedding(ref_path)
+            diarization = run_diarization(file_path)
+            transcript_objs = process_segments(diarization, file_path, ref_embedding)
+            rec["transcript"] = transcript_objs
+            transcript_objs_all.extend(transcript_objs)
+            if temp_file:
+                os.remove(temp_file.name)
+        updated_recordings.append(rec)
+    # Return transcript as part of response
+    return {"meetingId": meetingId, "transcript": transcript_objs_all}
+
 
 @router.post("/finalize-offline-session")
 async def finalize_offline_session(

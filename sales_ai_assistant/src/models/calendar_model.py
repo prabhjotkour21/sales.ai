@@ -85,6 +85,7 @@ class CalendarEvent(BaseModel):
     autoJoin: Optional[bool] = True
     mode: Optional[str] = "Online"
     recordings: Optional[List[RecordingFile]] = []
+    transcript: Optional[List[dict]] = []  
     class config:
         extra ="allow"
 
