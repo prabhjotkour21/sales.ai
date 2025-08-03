@@ -30,7 +30,6 @@ from src.services.transcription_service import transcribe_audio_bytes
 from src.services.mongo_service import save_transcription_chunk
 from src.utils import extract_filename_from_s3_url
 
-from src.services.mongo_service import get_meeting_collection
 
 from src.models.meeting_model import GetMeetingsById, MeetingCreate, MeetingResponse, meeting_doc_to_response
 from src.services.mongo_service import create_meeting, get_all_meetings, get_meeting_by_id
