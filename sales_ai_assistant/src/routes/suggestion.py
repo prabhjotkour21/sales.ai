@@ -81,8 +81,8 @@ async def generate_summary_from_transcript(meetingId: str, userId: str):
     risk_score = extract_number(risk_score_text)
     # 4. Save all results to DB
     await update_calendar_event(
-        meeting_id=meetingId,
-        update_data={
+        meetingId,
+        {
             "summary": summary,
             "suggestion": suggestion,
             "riskScore": int(risk_score),
