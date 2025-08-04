@@ -260,9 +260,9 @@ async def get_all_meetings(userId:str):
 async def get_googlemeeting_by_id(meeting_id):
     return await db["events"].find_one({"meetingId": meeting_id})
 
+
 async def get_meeting_by_id(meeting_id: str):
-    doc = await meetings_collection.find_one({"_id": ObjectId(meeting_id)})
-    return doc
+    return await meetings_collection.find_one({"meetingId": meeting_id})
 
 async def download_audio_from_url(url: str) -> bytes:
     timeout = aiohttp.ClientTimeout(total=120)  
