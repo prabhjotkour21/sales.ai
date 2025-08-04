@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Body, Quer
 from typing import List,Dict
 from bson import ObjectId
 from src.services.mongo_service import (get_final_audio, 
-get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session,get_googlemeeting_by_id, update_calendar_event,get_meeting_by_id)
+get_real_time_transcript, get_summary_and_suggestion, save_suggestion, get_suggestions_by_user_and_session,get_googlemeeting_by_id, update_calendar_event,get_meeting_by_id,extract_number)
 from src.routes.auth import verify_token
 from src.services.prediction_models_service import run_instruction
 from src.services.mongo_service import get_meeting_by_id
@@ -75,9 +75,10 @@ async def generate_summary_from_transcript(meetingId: str, userId: str):
     # 3. Run LLM to generate summary, suggestion, risk score, next step
     summary = run_instruction("Summarize the meeting in 5 lines", full_text)
     suggestion = run_instruction("What is the business suggestion from this meeting?", full_text)
-    risk_score = run_instruction("Give a risk score (0-100) for this deal based on the summary", f"Summary:\n{summary}")
+    risk_score_text = run_instruction("Give a risk score (0-100) for this deal based on the summary", f"Summary:\n{summary}")
     next_step = run_instruction("Mention the next step or action item based on the meeting discussion", full_text)
-
+    # Extract numeric risk score
+    risk_score = extract_number(risk_score_text)
     # 4. Save all results to DB
     await update_calendar_event(
         meeting_id=meetingId,

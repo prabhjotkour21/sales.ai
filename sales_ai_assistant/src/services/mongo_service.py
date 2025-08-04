@@ -5,6 +5,7 @@ from src.config import MONGO_URL, MONGO_DB_NAME
 from datetime import datetime, timedelta
 from pymongo import DESCENDING
 import logging
+import re
 
 import aiohttp
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,13 @@ meeting_summry_collection = db["events"]
 calendar_events_collection = db["events"]
 calendar_events_tasks_collection = db["calendarEventsTasks"]
 
+# Try to extract number from LLM response
+def extract_number(text: str) -> int:
+    match = re.search(r"\d{1,3}", text)
+    if match:
+        number = int(match.group())
+        return min(max(number, 0), 100)  # limit between 0 and 100
+    return 0
 async def save_transcript_to_db(meetingId: str, transcript_data: List[dict], recordings_data: List[dict]) -> bool:
     try:
         result = await calendar_events_collection.update_one(
